@@ -138,8 +138,25 @@ def predict_next(model, context_words, k=3):
 
 # --- Milestone 3: Load the fine-tuned GPT-2 model for legal clause classification.
 # Hint: Load and set up the fine-tuned GPT-2 model for inference, as shown in 'Fine-Tune GPT-2 to Tag Legal Contract Clauses'.
-def milestone_3():  # TODO(milestone 3)
-    raise NotImplementedError("TODO(milestone 3)")
+def load_classifier(model_dir="model"):
+    """Load the fine-tuned GPT-2 and its tokenizer from the folder train_classifier.py wrote."""
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+    model.eval()
+    return tokenizer, model
+
+
+def classify(classifier, sentence):
+    """Return the most likely clause type, its confidence and every type's probability."""
+    import torch
+    tokenizer, model = classifier
+    inputs = tokenizer(sentence, return_tensors="pt", truncation=True, max_length=64)
+    with torch.no_grad():
+        probs = torch.softmax(model(**inputs).logits[0], dim=-1)
+    scores = {clause_type: round(probs[i].item(), 3) for i, clause_type in enumerate(CLAUSE_TYPES)}
+    label = max(scores, key=scores.get)
+    return {"label": label, "confidence": scores[label], "scores": scores}
 
 
 # --- Milestone 4: Create a CLI game interface presenting partial legal sentences for completion.

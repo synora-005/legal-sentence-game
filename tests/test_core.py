@@ -9,7 +9,9 @@ import pytest
 from app.core import (
     CLAUSE_TYPES,
     build_ngram_model,
+    classify,
     corpus_stats,
+    load_classifier,
     load_corpus,
     predict_next,
     prepare_corpus,
@@ -109,9 +111,16 @@ def test_milestone_2():
 
 
 # Milestone 3: Load the fine-tuned GPT-2 model for legal clause classification.
-@pytest.mark.skip(reason="remove this line when you start milestone 3")
+MODEL_DIR = Path(__file__).parent.parent / "model"
+
+
+@pytest.mark.skipif(not MODEL_DIR.exists(), reason="train the model first: python train_classifier.py")
 def test_milestone_3():
-    raise NotImplementedError("write the test for milestone 3")
+    classifier = load_classifier(str(MODEL_DIR))
+    result = classify(classifier, "Either party may terminate this Agreement on thirty days written notice.")
+    assert result["label"] in CLAUSE_TYPES
+    assert 0 <= result["confidence"] <= 1
+    assert abs(sum(result["scores"].values()) - 1) < 0.01
 
 
 # Milestone 4: Create a CLI game interface presenting partial legal sentences for completion.
