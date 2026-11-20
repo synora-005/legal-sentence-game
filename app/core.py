@@ -161,9 +161,24 @@ def classify(classifier, sentence):
 
 # --- Milestone 4: Create a CLI game interface presenting partial legal sentences for completion.
 # Hint: Design the CLI to present partial sentences and integrate n-gram predictions for interactive user completion.
-def milestone_4():  # TODO(milestone 4)
-    raise NotImplementedError("TODO(milestone 4)")
+def make_opening(sentence, n_words=4):
+    """Split a sentence into the opening the player sees and the words left to complete.
 
+    Returns (opening_text, rest_text). Keeps the original capitals and punctuation.
+    """
+    words = sentence.split()
+    n_words = max(1, min(n_words, len(words) - 1))
+    return " ".join(words[:n_words]), " ".join(words[n_words:])
+
+
+def suggest(model, text, k=3):
+    """The k most likely next words for the sentence typed so far."""
+    return predict_next(model, tokenize(text), k=k)
+
+
+def add_word(text, word):
+    """Append one word to the sentence so far, with a single space."""
+    return (text.rstrip() + " " + word.strip()).strip()
 
 # --- Milestone 5: After user completion, classify the full sentence and provide feedback.
 # Hint: Use the fine-tuned GPT-2 model for sentence classification and interpret its output to provide feedback, as demonstrated in 'Fine-Tune GPT-2 to Tag Legal Contract Clauses'.

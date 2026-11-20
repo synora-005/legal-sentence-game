@@ -8,16 +8,19 @@ import pytest
 
 from app.core import (
     CLAUSE_TYPES,
+    add_word,
     build_ngram_model,
     classify,
     corpus_stats,
     load_classifier,
     load_corpus,
+    make_opening,
     predict_next,
     prepare_corpus,
     split_corpus,
     split_sentences,
     tokenize,
+    suggest,
 )
 
 CORPUS = Path(__file__).parent.parent / "corpus" / "clauses.csv"
@@ -124,10 +127,13 @@ def test_milestone_3():
 
 
 # Milestone 4: Create a CLI game interface presenting partial legal sentences for completion.
-@pytest.mark.skip(reason="remove this line when you start milestone 4")
 def test_milestone_4():
-    raise NotImplementedError("write the test for milestone 4")
-
+    assert make_opening("Either party may terminate this Agreement.", 3) == (
+        "Either party may", "terminate this Agreement.")
+    assert make_opening("Pay.", 4) == ("Pay.", "")   # never takes the whole sentence away
+    assert add_word("The Buyer shall", " pay ") == "The Buyer shall pay"
+    model = build_ngram_model([["the", "buyer", "shall", "pay"]] * 2, n=3)
+    assert suggest(model, "The Buyer shall", k=1) == ["pay"]
 
 # Milestone 5: After user completion, classify the full sentence and provide feedback.
 @pytest.mark.skip(reason="remove this line when you start milestone 5")
