@@ -12,6 +12,7 @@ from app.core import (
     build_ngram_model,
     classify,
     corpus_stats,
+    give_feedback,
     load_classifier,
     load_corpus,
     make_opening,
@@ -136,6 +137,11 @@ def test_milestone_4():
     assert suggest(model, "The Buyer shall", k=1) == ["pay"]
 
 # Milestone 5: After user completion, classify the full sentence and provide feedback.
-@pytest.mark.skip(reason="remove this line when you start milestone 5")
 def test_milestone_5():
-    raise NotImplementedError("write the test for milestone 5")
+    scores = {c: 0.0 for c in CLAUSE_TYPES}
+    result = {"label": "payment", "confidence": 0.9, "scores": scores}
+    ok = give_feedback(result, "payment")
+    assert ok["correct"] is True and "payment" in ok["message"]
+    bad = give_feedback(result, "liability")
+    assert bad["correct"] is False
+    assert "liability" in bad["message"] and "payment" in bad["message"]

@@ -182,5 +182,21 @@ def add_word(text, word):
 
 # --- Milestone 5: After user completion, classify the full sentence and provide feedback.
 # Hint: Use the fine-tuned GPT-2 model for sentence classification and interpret its output to provide feedback, as demonstrated in 'Fine-Tune GPT-2 to Tag Legal Contract Clauses'.
-def milestone_5():  # TODO(milestone 5)
-    raise NotImplementedError("TODO(milestone 5)")
+def give_feedback(result, expected_type):
+    """Turn a classify() result into feedback for the player.
+
+    `result` is what classify() returns; `expected_type` is the clause type of the
+    sentence the player was completing.
+    """
+    label, confidence = result["label"], result["confidence"]
+    nice = lambda name: name.replace("_", " ")
+    if label == expected_type:
+        message = (f"Well drafted. The model reads your sentence as a {nice(label)} clause "
+                   f"({confidence:.0%} confident).")
+        correct = True
+    else:
+        message = (f"The model reads your sentence as a {nice(label)} clause "
+                   f"({confidence:.0%} confident), but the original was a {nice(expected_type)} clause. "
+                   f"Try keeping closer to the {nice(expected_type)} wording.")
+        correct = False
+    return {"correct": correct, "label": label, "expected": expected_type, "message": message}
