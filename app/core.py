@@ -1,9 +1,107 @@
 """Your code. One stub per milestone; build them in order and keep each one small."""
 
+import csv
+import random
+import re
+from collections import Counter, defaultdict
+
+
 # --- Milestone 1: Prepare a legal text corpus for n-gram model training.
 # Hint: Apply corpus preprocessing and tokenization techniques from 'Build a Next-Word Predictor from Scratch'.
-def milestone_1():  # TODO(milestone 1)
-    raise NotImplementedError("TODO(milestone 1)")
+CLAUSE_TYPES = ["confidentiality", "termination", "payment", "liability", "governing_law"]
+
+_WORD = re.compile(r"[a-z0-9]+(?:['\u2019-][a-z0-9]+)*")    # words, keeping "supplier's" and "non-renewal" whole
+_ABBREVIATIONS = {"inc.", "ltd.", "co.", "corp.", "no.", "e.g.", "i.e.", "etc.", "vs.", "art.", "sec.", "cl."}
+
+
+def tokenize(text):
+    """Lower-case words only: punctuation is dropped and numbers are kept. 'Pay 5% now.' -> ['pay', '5', 'now']."""
+    return _WORD.findall(text.lower())
+
+
+def split_sentences(text):
+    """Cut raw text (a pasted contract, say) into sentences, without breaking after 'Inc.' or 'Ltd.'."""
+    text = " ".join(text.split())
+    pieces = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"(])", text) if text else []
+    sentences = []
+    for piece in pieces:
+        if sentences and sentences[-1].split()[-1].lower() in _ABBREVIATIONS:
+            sentences[-1] += " " + piece
+        else:
+            sentences.append(piece)
+    return sentences
+
+
+def load_corpus(path):
+    """Read a CSV with the columns `sentence` and `clause_type`.
+
+    Tidies the spaces, skips empty and repeated sentences (ignoring capitals) and refuses
+    clause types that are not in CLAUSE_TYPES. Returns a list of {"sentence", "clause_type"} dictionaries.
+    """
+    examples, seen = [], set()
+    with open(path, encoding="utf-8", newline="") as f:
+        for line_number, row in enumerate(csv.DictReader(f), start=2):
+            sentence = " ".join((row.get("sentence") or "").split())
+            clause_type = (row.get("clause_type") or "").strip()
+            if not sentence:
+                continue
+            if clause_type not in CLAUSE_TYPES:
+                raise ValueError(f"line {line_number}: unknown clause type {clause_type!r}, expected one of {CLAUSE_TYPES}")
+            if sentence.lower() in seen:
+                continue
+            seen.add(sentence.lower())
+            examples.append({"sentence": sentence, "clause_type": clause_type})
+    return examples
+
+
+def split_corpus(examples, train_fraction=0.7, val_fraction=0.15, seed=0):
+    """Split into train, validation and test sets, keeping each clause type in the same proportion.
+
+    The rest after train and validation becomes the test set. The same seed gives the same split.
+    The game takes its openings from the test set, so the n-gram model never saw those sentences.
+    """
+    if train_fraction <= 0 or val_fraction < 0 or train_fraction + val_fraction >= 1:
+        raise ValueError("train_fraction and val_fraction must leave some examples for the test set")
+    rng = random.Random(seed)
+    by_type = defaultdict(list)
+    for example in examples:
+        by_type[example["clause_type"]].append(example)
+
+    train, val, test = [], [], []
+    for clause_type in sorted(by_type):            # a fixed order, so the seed always gives the same split
+        group = by_type[clause_type][:]
+        rng.shuffle(group)
+        n_train = round(len(group) * train_fraction)
+        n_val = round(len(group) * val_fraction)
+        train += group[:n_train]
+        val += group[n_train:n_train + n_val]
+        test += group[n_train + n_val:]
+    for split in (train, val, test):
+        rng.shuffle(split)
+    return train, val, test
+
+
+def prepare_corpus(examples):
+    """Every sentence as a list of tokens: the input the n-gram model will count (milestone 2)."""
+    return [tokens for tokens in (tokenize(e["sentence"]) for e in examples) if tokens]
+
+
+def corpus_stats(examples):
+    """A few numbers that describe the corpus."""
+    per_type = {clause_type: 0 for clause_type in CLAUSE_TYPES}
+    for example in examples:
+        per_type[example["clause_type"]] += 1
+    sentences = prepare_corpus(examples)
+    counts = Counter(token for tokens in sentences for token in tokens)
+    total = sum(counts.values())
+    return {
+        "sentences": len(sentences),
+        "per_type": per_type,
+        "tokens": total,
+        "vocabulary": len(counts),
+        "avg_words": round(total / len(sentences), 1) if sentences else 0.0,
+        "most_common": counts.most_common(5),
+    }
 
 
 # --- Milestone 2: Implement the n-gram next-word predictor.
