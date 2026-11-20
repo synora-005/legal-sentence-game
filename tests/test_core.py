@@ -8,8 +8,10 @@ import pytest
 
 from app.core import (
     CLAUSE_TYPES,
+    build_ngram_model,
     corpus_stats,
     load_corpus,
+    predict_next,
     prepare_corpus,
     split_corpus,
     split_sentences,
@@ -96,9 +98,14 @@ def test_milestone_1_real_corpus():
 
 
 # Milestone 2: Implement the n-gram next-word predictor.
-@pytest.mark.skip(reason="remove this line when you start milestone 2")
 def test_milestone_2():
-    raise NotImplementedError("write the test for milestone 2")
+    sentences = [["the", "buyer", "shall", "pay"], ["the", "buyer", "shall", "pay"], ["the", "buyer", "shall", "not", "pay"]]
+    model = build_ngram_model(sentences, n=3)
+    assert predict_next(model, ["the", "buyer", "shall"], k=2) == ["pay", "not"]
+    # unseen context falls back to a shorter one
+    assert predict_next(model, ["zzz", "shall"], k=1) == ["pay"]
+    # totally unknown words give an empty list
+    assert predict_next(model, ["zzz"], k=3) == []
 
 
 # Milestone 3: Load the fine-tuned GPT-2 model for legal clause classification.

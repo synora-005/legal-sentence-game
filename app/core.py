@@ -106,8 +106,34 @@ def corpus_stats(examples):
 
 # --- Milestone 2: Implement the n-gram next-word predictor.
 # Hint: Implement the n-gram model construction and next-word prediction logic from 'Build a Next-Word Predictor from Scratch'.
-def milestone_2():  # TODO(milestone 2)
-    raise NotImplementedError("TODO(milestone 2)")
+def build_ngram_model(sentences, n=3):
+    """Count which word follows each short run of words.
+
+    `sentences` is a list of token lists (the output of prepare_corpus).
+    For n=3 we store contexts of 2 words and also of 1 word, so predict_next can fall back.
+    """
+    counts = defaultdict(Counter)
+    for tokens in sentences:
+        for i in range(1, len(tokens)):
+            for size in range(1, n):              # context sizes 1 .. n-1
+                if i - size >= 0:
+                    context = tuple(tokens[i - size:i])
+                    counts[context][tokens[i]] += 1
+    return {"n": n, "counts": dict(counts)}
+
+
+def predict_next(model, context_words, k=3):
+    """Return up to k likely next words, most common first.
+
+    Tries the longest context first, then backs off to shorter ones. Unknown words give [].
+    """
+    n, counts = model["n"], model["counts"]
+    context_words = list(context_words)
+    for size in range(min(n - 1, len(context_words)), 0, -1):
+        context = tuple(context_words[-size:])
+        if context in counts:
+            return [word for word, _ in counts[context].most_common(k)]
+    return []
 
 
 # --- Milestone 3: Load the fine-tuned GPT-2 model for legal clause classification.
